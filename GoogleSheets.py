@@ -75,33 +75,16 @@ class GoogleSheets():
         if not rangeName:
             rangeName = self.config["spreadsheetRange"]
 
+        colParser = TransactionColumnParser()
+
         # Initialise column names for first row
         sheetData = [
-            [
-                "id",
-                "status",
-                "rawText",
-                "description",
-                "message",
-                "holdInfo",
-                "roundUp",
-                "cashback",
-                "amount",
-                "foreignAmount",
-                "settledTimestamp",
-                "createdTimestamp",
-                "account"
-            ]
+            self.getColumnHeaders
         ]
-
-
-        colParser = TransactionColumnParser()
 
         for t in transactionsList:
             transactionRow = colParser.parse(t)
             sheetData.append(transactionRow)
-
-
 
         # Send data to be written
         body = {
@@ -122,6 +105,24 @@ class GoogleSheets():
 class TransactionColumnParser():
     def __init__(self):
         self.x = 1
+
+    def getColumnHeaders(self):
+        headers = [
+            "id",
+            "status",
+            "rawText",
+            "description",
+            "message",
+            "holdInfo",
+            "roundUp",
+            "cashback",
+            "amount",
+            "foreignAmount",
+            "settledTimestamp",
+            "createdTimestamp",
+            "account"
+        ]
+        return headers
 
     def parse(self, t):
         transactionRow = [
