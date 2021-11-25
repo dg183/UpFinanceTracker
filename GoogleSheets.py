@@ -5,16 +5,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
+import AppConfig
 
 class GoogleSheets():
     def __init__(self, 
-                scopes=['https://www.googleapis.com/auth/spreadsheets'], 
-                spreadsheetID='1XbFflGI5sn_w4Bxt-rRg-mb-AYFrDfGWS7-qMSJZomY',
-                rangeName='Sheet1!A2:E'):
+                scopes=['https://www.googleapis.com/auth/spreadsheets']):
         self.scopes = scopes
-        # self.spreadsheetID = spreadsheetID
-        # self.rangeName = rangeName
         self.sheet = self._initSheet()
+        self.config = AppConfig.config
 
     def _initSheet(self):
         creds = None
@@ -41,27 +39,43 @@ class GoogleSheets():
         sheet = service.spreadsheets()
         return sheet
 
-    def readRange(self,
-                    spreadsheetID='1XbFflGI5sn_w4Bxt-rRg-mb-AYFrDfGWS7-qMSJZomY',
-                    rangeName='Sheet1!A2:E'):
-        result = self.sheet.values().get(spreadsheetId=spreadsheetID,
-                                range=rangeName).execute()
-        values = result.get('values', [])
+    # def readRange(self,
+    #                 spreadsheetID='1XbFflGI5sn_w4Bxt-rRg-mb-AYFrDfGWS7-qMSJZomY',
+    #                 rangeName='Sheet1!A2:E'):
+    #     result = self.sheet.values().get(spreadsheetId=spreadsheetID,
+    #                             range=rangeName).execute()
+    #     values = result.get('values', [])
 
-        if not values:
-            print('No data found.')
-        else:
-            print('Name, Major:')
-            for row in values:
-                # Print columns A and E, which correspond to indices 0 and 4.
-                print('%s, %s' % (row[0], row[4]))
+    #     if not values:
+    #         print('No data found.')
+    #     else:
+    #         print('Name, Major:')
+    #         for row in values:
+    #             # Print columns A and E, which correspond to indices 0 and 4.
+    #             print('%s, %s' % (row[0], row[4]))
 
+
+    # This function will write inputted transaction into Google Sheets
+    '''
+    Example row data for Google Sheets
+        values = [
+            ['row1','aa','ascc','as'],
+            ['row2','sad','s','xa'],
+            ['row3','asds','sad','eas']
+        ]
+    '''
     def writeTransactions(self, 
                             transactionsList, 
-                            spreadsheetID='1XbFflGI5sn_w4Bxt-rRg-mb-AYFrDfGWS7-qMSJZomY',
-                            rangeName='Sheet1'):
+                            spreadsheetID='',
+                            rangeName=''):
         print("Writing transactions to sheets")
 
+        if not spreadsheetID:
+            spreadsheetID = self.config["spreadsheetID"]
+        if not rangeName:
+            rangeName = self.config["spreadsheetRange"]
+
+        # Initialise column names for first row
         sheetData = [
             [
                 "id",
@@ -80,32 +94,11 @@ class GoogleSheets():
             ]
         ]
 
-        # Organise transactions into row data
-        values = [
-            ['row1','aa','ascc','as'],
-            ['row2','sad','s','xa'],
-            ['row3','asds','sad','eas']
-        ]
 
         colParser = TransactionColumnParser()
 
         for t in transactionsList:
             transactionRow = colParser.parse(t)
-            # transactionRow = [
-            #     t["id"],
-            #     t["attributes"]["status"],
-            #     t["attributes"]["rawText"],
-            #     t["attributes"]["description"],
-            #     t["attributes"]["message"],
-            #     t["attributes"]["holdInfo"],
-            #     t["attributes"]["roundUp"],
-            #     t["attributes"]["cashback"],
-            #     t["attributes"]["amount"]["currencyCode"] + t["attributes"]["amount"]["value"],
-            #     t["attributes"]["foreignAmount"],
-            #     t["attributes"]["settledAt"],
-            #     t["attributes"]["createdAt"],
-            #     t["relationships"]["account"]["data"]["id"]
-            # ]
             sheetData.append(transactionRow)
 
 
@@ -127,12 +120,7 @@ class GoogleSheets():
 
 
 class TransactionColumnParser():
-    # Inputs
-    #       columnName::string - name of column in google sheet
-    #       transactionKey::
-    # def __init__(self, columnName, transactionKey, formatFunction):
     def __init__(self):
-        # self.transaction = transaction
         self.x = 1
 
     def parse(self, t):
