@@ -20,19 +20,34 @@ class UpHandler():
 
     # Get all transactions for this account
     def getAllTransactions(self):
-        url = "https://api.up.com.au/api/v1/transactions"
-        allTransactions = self._get(url)
 
-        transactionList = allTransactions["data"]
+        allTransactionsList = []
+        nextUrl = "https://api.up.com.au/api/v1/transactions?page[size]=30"
+
+        while nextUrl:
+
+            currPageTransactionsObj = self._get(nextUrl)
+            print("Response from Up")
+            print(currPageTransactionsObj)
+            currTransactionList = currPageTransactionsObj["data"]
+
+            for t in currTransactionList:
+                allTransactionsList.append(t)
+            # allTransactionsList.append(currPageTransactions["data"])
+
+            try:
+                nextUrl = currPageTransactionsObj["links"]["next"]
+            except:
+                nextUrl = None
         # Get list of all transactions
         print("All transactions")
-        print(json.dumps(transactionList, indent=4))
+        print(json.dumps(allTransactionsList, indent=4))
 
         # Get each transaction individuallu
         # transactionList = allTransactions["data"]
         # for tObj in transactionList:
         #     transaction = self.getTransaction(tObj["id"])
-        return transactionList
+        return allTransactionsList
 
     # Get a single transaction
     def getTransaction(self, tid):
