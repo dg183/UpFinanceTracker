@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+import datetime
 
 import AppConfig
 
@@ -79,7 +80,7 @@ class GoogleSheets():
 
         # Initialise column names for first row
         sheetData = [
-            self.getColumnHeaders
+            colParser.getColumnHeaders()
         ]
 
         for t in transactionsList:
@@ -91,7 +92,7 @@ class GoogleSheets():
             'values': sheetData
         }
 
-        value_input_option = "RAW" # ["RAW","USER_ENTERED"]
+        value_input_option = "USER_ENTERED" # ["RAW","USER_ENTERED"]
         result = self.sheet.values().update(
             spreadsheetId=spreadsheetID, range=rangeName,
             valueInputOption=value_input_option, body=body).execute()
@@ -108,19 +109,22 @@ class TransactionColumnParser():
 
     def getColumnHeaders(self):
         headers = [
-            "id",
-            "status",
-            "rawText",
-            "description",
-            "message",
-            "holdInfo",
-            "roundUp",
-            "cashback",
-            "amount",
-            "foreignAmount",
-            "settledTimestamp",
-            "createdTimestamp",
-            "account"
+            "ID",
+            "Status",
+            "RawText",
+            "Description",
+            "Message",
+            "HoldInfo",
+            "RoundUp",
+            "Cashback",
+            "Amount",
+            "ForeignAmount",
+            "Category",
+            "Parent Category",
+            "Month",
+            "SettledTimestamp",
+            "CreatedTimestamp",
+            "Account"
         ]
         return headers
 
@@ -132,10 +136,13 @@ class TransactionColumnParser():
             self._parseDirect(t["attributes"]["description"]),
             self._parseDirect(t["attributes"]["message"]),
             self._parseAmount(t["attributes"]["holdInfo"]),
-            self._parseDirect(t["attributes"]["roundUp"]),
+            self._parseRoundUp(t["attributes"]["roundUp"]),
             self._parseDirect(t["attributes"]["cashback"]),
             self._parseAmount(t["attributes"]["amount"]),
             self._parseAmount(t["attributes"]["foreignAmount"]),
+            self._parseCategory(t["relationships"]["category"]),
+            self._parseCategory(t["relationships"]["parentCategory"]),
+            self._parseTransactionMonth(t["attributes"]["createdAt"]),
             self._parseDirect(t["attributes"]["settledAt"]),
             self._parseDirect(t["attributes"]["createdAt"]),
             self._parseDirect(t["relationships"]["account"]["data"]["id"])
@@ -172,7 +179,48 @@ class TransactionColumnParser():
             else:
                 return self._parseAmount(amountObj["foreignAmount"])
 
-        
-        return amountObj["currencyCode"] + amountObj["value"]
-    
+        return f"{amountObj['value']}"
 
+        # return f"{amountObj['currencyCode']} {amountObj['value']}"
+
+    def _parseRoundUp(self, roundupObj):
+        if not roundupObj:
+            return ""
+
+        # Example roundupObj
+        '''
+        "roundupObj": {
+            'amount': {
+                'currencyCode': 'AUD', 
+                'value': '-3.00', 
+                'valueInBaseUnits': -300
+            }, 
+            'boostPortion': {
+                'currencyCode': 'AUD', 
+                'value': '-2.00', 
+                'valueInBaseUnits': -200
+            }
+        }
+        '''
+
+        if "amount" not in roundupObj or "boostPortion" not in roundupObj:
+            return ""
+
+        amount = roundupObj["amount"]
+        # boost = roundupObj["boost"]
+        return f"{amount['value']}"
+        # return f"{amount['currencyCode']} {amount['value']}"
+
+    def _parseCategory(self, categoryObj):
+        try:
+            return categoryObj["data"]["id"]
+        except:
+            return "N/A"
+    
+    def _parseTransactionMonth(self, timestamp):
+        try:
+            dt = datetime.datetime.strptime(timestamp[:10], "%Y-%m-%d")
+            return dt.strftime("%B %Y")
+        except Exception as e:
+            print(e)
+            return timestamp
