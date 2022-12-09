@@ -20,15 +20,15 @@ class UpHandler():
 
     # Get all transactions for this account
     def getAllTransactions(self):
-
+        print("Getting all transactions..")
         allTransactionsList = []
         nextUrl = "https://api.up.com.au/api/v1/transactions?page[size]=30"
 
         while nextUrl:
 
             currPageTransactionsObj = self._get(nextUrl)
-            print("Response from Up")
-            print(currPageTransactionsObj)
+            # print("Response from Up")
+            # print(currPageTransactionsObj)
             currTransactionList = currPageTransactionsObj["data"]
 
             for t in currTransactionList:
